@@ -1,5 +1,8 @@
-use crate::{app_state::AppState,
-            domain::{error::AuthAPIError, user::User}};
+use crate::domain::user::{Email, Password};
+use crate::{
+    app_state::AppState,
+    domain::{error::AuthAPIError, user::User},
+};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
@@ -8,28 +11,31 @@ pub async fn signup(
     State(state): State<AppState>,
     Json(request): Json<SignupRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
-    let email = request.email;
-    let password = request.password;
 
-    // TODO: early return AuthAPIError::InvalidCredentials if:
-    // - email is empty or does not contain '@'
-    // - password is less than 8 characters
-    if email.is_empty() || !email.contains('@') || password.len() < 8 {
-        return Err(AuthAPIError::InvalidCredentials);
-    }
+    // TODO: early return AuthAPIError::InvalidCredentials
+
+    let email: Email =
+        Email::parse(&request.email).map_err(|_e| AuthAPIError::InvalidCredentials)?;
+
+    let password =
+        Password::parse(&request.password).map_err(|_e| AuthAPIError::InvalidCredentials)?;
+
     // Create a new `User` instance using data in the `request`
     let user = User::new(email, password, request.requires_2fa);
 
     let mut user_store = state.user_store.write().await;
 
     // TODO: early return AuthAPIError::UserAlreadyExists if email exists in user_store.
-    if user_store.get_user(user.email.as_ref()).await.is_ok() {
+    if user_store.get_user(&user.email).await.is_ok() {
         return Err(AuthAPIError::UserAlreadyExists);
     }
 
     // TODO: Add `user` to the `user_store`. Simply unwrap the returned `Result` enum type for now.
     // TODO: instead of using unwrap, early return AuthAPIError::UnexpectedError if add_user() fails.
-    user_store.add_user(user).await.map_err(|_| AuthAPIError::UnexpectedError)?;
+    user_store
+        .add_user(user)
+        .await
+        .map_err(|_| AuthAPIError::UnexpectedError)?;
 
     let response = Json(SignupResponse {
         message: "User created successfully!".to_string(),
