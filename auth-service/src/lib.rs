@@ -1,18 +1,20 @@
-use crate::routes::{login, logout, signup, verify_2fa, verify_token};
 use app_state::AppState;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::routing::post;
-use axum::serve::Serve;
-use axum::{Json, Router};
-use domain::error::AuthAPIError;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::post,
+    serve::Serve,
+    Json, Router,
+};
+use domain::AuthAPIError;
+use routes::{login, logout, signup, verify_2fa, verify_token};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use tower_http::services::ServeDir;
-pub mod routes;
-pub mod domain;
-pub mod services;
 pub mod app_state;
+pub mod domain;
+pub mod routes;
+pub mod services;
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
