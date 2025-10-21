@@ -15,6 +15,7 @@ pub mod app_state;
 pub mod domain;
 pub mod routes;
 pub mod services;
+pub mod utils;
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
@@ -62,7 +63,7 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             },
-            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),       
+            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),
