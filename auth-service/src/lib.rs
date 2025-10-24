@@ -29,7 +29,6 @@ pub struct Application {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
-
         // Allow the app service (running on our local machine and in production) to call the auth service
         let allowed_origins = [
             "http://localhost:8000".parse()?,
@@ -80,8 +79,10 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
-            },
-            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
+            }
+            AuthAPIError::IncorrectCredentials => {
+                (StatusCode::UNAUTHORIZED, "Incorrect credentials")
+            }
             AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
             AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
         };
