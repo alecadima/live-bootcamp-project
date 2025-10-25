@@ -1,6 +1,7 @@
-use auth_service::app_state::AppState;
+use auth_service::app_state::{AppState, BannedTokenStoreType};
 use auth_service::services::hashmap_user_store::HashmapUserStore;
-use auth_service::utils::test;
+use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
+use auth_service::utils::constants::test;
 use auth_service::Application;
 use reqwest::cookie::Jar;
 use std::sync::Arc;
@@ -11,12 +12,15 @@ pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<Jar>, // New!
     pub http_client: reqwest::Client,
+    pub banned_token_store: BannedTokenStoreType,
 }
 
 impl TestApp {
     pub async fn new() -> Self {
-        let user_store = HashmapUserStore::default();
-        let app_state = AppState::new(Arc::new(RwLock::new(user_store)));
+        let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
+        let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+
+        let app_state = AppState::new(user_store, banned_token_store.clone());
 
         let app = Application::build(app_state, test::APP_ADDRESS)
             .await
@@ -41,6 +45,7 @@ impl TestApp {
             address,
             cookie_jar,
             http_client,
+            banned_token_store,
         }
     }
 
@@ -57,16 +62,13 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.http_client
-            .post(&format!("{}/signup", self.address))
+            .post(&format!("{}/signup", &self.address))
             .json(body)
             .send()
             .await
             .expect("Failed to execute request.")
     }
 
-    pub fn get_random_email() -> String {
-        format!("{}@example.com", Uuid::new_v4())
-    }
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
@@ -88,7 +90,7 @@ impl TestApp {
 
     pub async fn post_verify_2fa(&self) -> reqwest::Response {
         self.http_client
-            .post(&format!("{}/verify-2fa", self.address))
+            .post(&format!("{}/verify-2fa", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
@@ -104,4 +106,8 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
+}
+
+pub fn get_random_email() -> String {
+    format!("{}@example.com", Uuid::new_v4())
 }

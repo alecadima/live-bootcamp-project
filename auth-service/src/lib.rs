@@ -1,7 +1,8 @@
+use std::error::Error;
+
 use app_state::AppState;
-use axum::http::Method;
 use axum::{
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::post,
     serve::Serve,
@@ -10,9 +11,8 @@ use axum::{
 use domain::AuthAPIError;
 use routes::{login, logout, signup, verify_2fa, verify_token};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
-use tower_http::cors::CorsLayer;
-use tower_http::services::ServeDir;
+use tower_http::{cors::CorsLayer, services::ServeDir};
+
 pub mod app_state;
 pub mod domain;
 pub mod routes;
@@ -32,7 +32,6 @@ impl Application {
         // Allow the app service (running on our local machine and in production) to call the auth service
         let allowed_origins = [
             "http://localhost:8000".parse()?,
-            // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
             "http://198.211.114.112:8000".parse()?,
         ];
 
@@ -47,8 +46,8 @@ impl Application {
             .nest_service("/", ServeDir::new("assets"))
             .route("/signup", post(signup))
             .route("/login", post(login))
-            .route("/logout", post(logout))
             .route("/verify-2fa", post(verify_2fa))
+            .route("/logout", post(logout))
             .route("/verify-token", post(verify_token))
             .with_state(app_state)
             .layer(cors);
@@ -67,7 +66,7 @@ impl Application {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub error: String,
 }
@@ -83,8 +82,8 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::IncorrectCredentials => {
                 (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             }
-            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
-            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
+            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing auth token"),
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid auth token"),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),
