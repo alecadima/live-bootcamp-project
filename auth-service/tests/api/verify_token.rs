@@ -1,5 +1,4 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::domain::{BannedTokenStore, Email};
 use auth_service::utils::constants::JWT_COOKIE_NAME;
 use auth_service::ErrorResponse;
 
@@ -73,7 +72,7 @@ async fn should_return_401_if_invalid_token() {
 
 #[tokio::test]
 async fn should_return_401_if_banned_token() {
-    let mut app = TestApp::new().await;
+    let app = TestApp::new().await;
 
     let random_email = get_random_email();
 

@@ -12,7 +12,7 @@ pub async fn logout(
     jar: CookieJar,
 ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
     // Retrieve JWT cookie from the `CookieJar`
-    // Return AuthAPIError::MissingToken is the cookie is not found
+    // Return AuthAPIError::MissingToken if the cookie is not found
     let cookie = match jar.get(JWT_COOKIE_NAME) {
         Some(cookie) => cookie,
         None => return (jar, Err(AuthAPIError::MissingToken)),
@@ -20,8 +20,7 @@ pub async fn logout(
 
     let token = cookie.value().to_owned();
 
-    // TODO: Validate JWT token by calling `validate_token` from the auth service.
-    // If the token is valid you can ignore the returned claims for now.
+    // If the token is valid, you can ignore the returned claims for now.
     // Return AuthAPIError::InvalidToken is validation fails.
     let _ = match validate_token(&token, state.banned_token_store.clone()).await {
         Ok(claims) => claims,

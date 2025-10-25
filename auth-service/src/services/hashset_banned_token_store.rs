@@ -41,6 +41,6 @@ mod tests {
 
         let result = store.contains_token(&token).await;
 
-        assert!(!result.unwrap());
+        assert!(result.unwrap());
     }
 }
