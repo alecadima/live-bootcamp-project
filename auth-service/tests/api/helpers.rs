@@ -1,4 +1,6 @@
-use auth_service::app_state::{AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType};
+use auth_service::app_state::{
+    AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType,
+};
 use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
@@ -101,13 +103,18 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn post_verify_2fa(&self) -> reqwest::Response {
+    pub async fn post_verify_2fa<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
         self.http_client
-            .post(&format!("{}/verify-2fa", &self.address))
+            .post(format!("{}/verify-2fa", &self.address))
+            .json(body)
             .send()
             .await
             .expect("Failed to execute request.")
     }
+
     pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,

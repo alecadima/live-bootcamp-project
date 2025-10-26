@@ -55,7 +55,7 @@ async fn handle_2fa(
     let login_attempt_id = LoginAttemptId::default();
     let two_fa_code = TwoFACode::default();
 
-    // TODO: Store the ID and code in our 2FA code store. Return `AuthAPIError::UnexpectedError` if the operation fails
+    // Store the ID and code in our 2FA code store. Return `AuthAPIError::UnexpectedError` if the operation fails
     match state
         .two_fa_code_store
         .write()
@@ -67,7 +67,7 @@ async fn handle_2fa(
         Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
     };
 
-    // TODO: send 2FA code via the email client. Return `AuthAPIError::UnexpectedError` if the operation fails.
+    // send 2FA code via the email client. Return `AuthAPIError::UnexpectedError` if the operation fails.
     match state.email_client.send_email(email, "2FA Authentication Code", two_fa_code.as_ref()).await {
         Ok(_) => (),
         Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
@@ -109,7 +109,7 @@ pub struct LoginRequest {
 
 // The login route can return 2 possible success responses.
 // This enum models each response!
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum LoginResponse {
     RegularAuth,
