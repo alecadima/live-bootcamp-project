@@ -67,6 +67,12 @@ async fn handle_2fa(
         Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
     };
 
+    // TODO: send 2FA code via the email client. Return `AuthAPIError::UnexpectedError` if the operation fails.
+    match state.email_client.send_email(email, "2FA Authentication Code", two_fa_code.as_ref()).await {
+        Ok(_) => (),
+        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+    }
+
     // Finally, we need to return the login attempt ID to the client
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
         message: "2FA required".to_owned(),
