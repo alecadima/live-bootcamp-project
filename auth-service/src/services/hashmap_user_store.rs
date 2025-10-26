@@ -41,14 +41,6 @@ impl UserStore for HashmapUserStore {
             None => Err(UserStoreError::UserNotFound),
         }
     }
-    /*        let user = self.get_user(email).await?;
-            if user.password.as_ref() == password.as_ref() {
-                Ok(())
-            } else {
-                Err(UserStoreError::InvalidCredentials)
-            }
-        }
-    */
 }
 
 #[cfg(test)]
