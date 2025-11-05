@@ -2,7 +2,6 @@ use crate::app_state::AppState;
 use crate::domain::{AuthAPIError, Email, LoginAttemptId, TwoFACode};
 use crate::utils::auth::generate_auth_cookie;
 use axum::extract::State;
-use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum_extra::extract::CookieJar;
@@ -40,14 +39,13 @@ pub async fn verify_2fa(
     // Validate that the `login_attempt_id` and `two_fa_code`
     // in the request body matches values in the `code_tuple`.
     // If not, return a `AuthAPIError::IncorrectCredentials`.
-    if code_tuple.0 != login_attempt_id || code_tuple.1 != two_fa_code {
+    if !code_tuple.0.eq(&login_attempt_id) || !code_tuple.1.eq(&two_fa_code) {
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
 
-    match two_fa_code_store.remove_code(&email).await {
-        Ok(_) => (),
-        Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
-    };
+    if two_fa_code_store.remove_code(&email).await.is_err() {
+        return (jar, Err(AuthAPIError::IncorrectCredentials));
+    }
 
     let auth_cookie = match generate_auth_cookie(&email) {
         Ok(cookie) => cookie,
@@ -56,7 +54,7 @@ pub async fn verify_2fa(
 
     let updated_jar = jar.add(auth_cookie);
 
-    (updated_jar, Ok(StatusCode::OK.into_response()))
+    (updated_jar, Ok(()))
 }
 
 #[derive(Deserialize, Debug)]

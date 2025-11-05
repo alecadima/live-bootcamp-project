@@ -66,7 +66,7 @@ impl LoginAttemptId {
 impl Default for LoginAttemptId {
     fn default() -> Self {
         // Use the `uuid` crate to generate a random version 4 UUID
-        LoginAttemptId::parse(uuid::Uuid::new_v4().to_string()).unwrap()
+        Self(uuid::Uuid::new_v4().to_string())
     }
 }
 
@@ -97,10 +97,7 @@ impl Default for TwoFACode {
     fn default() -> Self {
         // Use the `rand` crate to generate a random 2FA code.
         // The code should be 6 digits (ex: 834_629)
-        let mut rng = rand::thread_rng();
-        let code: u32 = rng.gen_range(000_001..999_999);
-        Self::parse(code.to_string())
-            .expect("Failed to generate random TwoFACode")
+        Self(rand::thread_rng().gen_range(000_001..999_999).to_string())
     }
 }
 

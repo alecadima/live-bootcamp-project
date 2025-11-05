@@ -56,27 +56,31 @@ async fn handle_2fa(
     let two_fa_code = TwoFACode::default();
 
     // Store the ID and code in our 2FA code store. Return `AuthAPIError::UnexpectedError` if the operation fails
-    match state
+    if state
         .two_fa_code_store
         .write()
         .await
         .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
         .await
+        .is_err()
     {
-        Ok(_) => (),
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
-    };
+        return (jar, Err(AuthAPIError::UnexpectedError));
+    }
 
     // send 2FA code via the email client. Return `AuthAPIError::UnexpectedError` if the operation fails.
-    match state.email_client.send_email(email, "2FA Authentication Code", two_fa_code.as_ref()).await {
-        Ok(_) => (),
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+    if state
+        .email_client
+        .send_email(email, "2FA Authentication Code", two_fa_code.as_ref())
+        .await
+        .is_err()
+    {
+        return (jar, Err(AuthAPIError::UnexpectedError));
     }
 
     // Finally, we need to return the login attempt ID to the client
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
         message: "2FA required".to_owned(),
-        login_attempt_id: login_attempt_id.as_ref().to_string(), // Add the generated login attempt ID
+        login_attempt_id: login_attempt_id.as_ref().to_owned(), // Add the generated login attempt ID
     }));
 
     (jar, Ok((StatusCode::PARTIAL_CONTENT, response)))
@@ -97,19 +101,18 @@ async fn handle_no_2fa(
 
     let updated_jar = jar.add(auth_cookie);
 
-    let response = Json(LoginResponse::RegularAuth);
-    (updated_jar, Ok((StatusCode::OK, response)))
+    (updated_jar, Ok((StatusCode::OK, Json(LoginResponse::RegularAuth))))
 }
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
+    email: String,
+    password: String,
 }
 
 // The login route can return 2 possible success responses.
 // This enum models each response!
-#[derive(Debug, Serialize, serde::Deserialize)]
+#[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum LoginResponse {
     RegularAuth,

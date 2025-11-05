@@ -1,6 +1,4 @@
-use auth_service::app_state::{
-    AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType,
-};
+use auth_service::app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType};
 use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
@@ -17,7 +15,6 @@ pub struct TestApp {
     pub cookie_jar: Arc<Jar>,
     pub banned_token_store: BannedTokenStoreType,
     pub two_fa_code_store: TwoFACodeStoreType,
-    pub email_client: EmailClientType,
     pub http_client: reqwest::Client,
 }
 
@@ -32,7 +29,7 @@ impl TestApp {
             user_store,
             banned_token_store.clone(),
             two_fa_code_store.clone(),
-            email_client.clone(),
+            email_client,
         );
 
         let app = Application::build(app_state, test::APP_ADDRESS)
@@ -59,14 +56,13 @@ impl TestApp {
             cookie_jar,
             banned_token_store,
             two_fa_code_store,
-            email_client,
             http_client,
         }
     }
 
     pub async fn get_root(&self) -> reqwest::Response {
         self.http_client
-            .get(&format!("{}/", self.address))
+            .get(&format!("{}/", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
@@ -89,7 +85,7 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.http_client
-            .post(&format!("{}/login", self.address))
+            .post(&format!("{}/login", &self.address))
             .json(body)
             .send()
             .await
@@ -97,7 +93,7 @@ impl TestApp {
     }
     pub async fn post_logout(&self) -> reqwest::Response {
         self.http_client
-            .post(&format!("{}/logout", self.address))
+            .post(&format!("{}/logout", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
