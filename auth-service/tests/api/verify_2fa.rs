@@ -3,11 +3,11 @@ use auth_service::domain::Email;
 use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
 use auth_service::ErrorResponse;
+use test_helpers::api_test;
 
-#[tokio::test]
+#[api_test]
 async fn should_return_200_if_correct_code() {
     // Make sure to assert the auth cookie gets set
-    let app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -61,9 +61,8 @@ async fn should_return_200_if_correct_code() {
 
     assert!(!auth_cookie.value().is_empty());
 }
-#[tokio::test]
+#[api_test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -100,9 +99,8 @@ async fn should_return_400_if_invalid_input() {
     }
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_401_if_incorrect_credentials() {
-    let app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -151,11 +149,10 @@ async fn should_return_401_if_incorrect_credentials() {
     );
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_401_if_old_code() {
     // Call login twice. Then, attempt to call verify-fa with the 2FA code from the first login request. This should fail.
     // Make sure to assert the auth cookie gets set
-    let app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -230,9 +227,8 @@ async fn should_return_401_if_old_code() {
     assert_eq!(response_second_login.status().as_u16(), 401);
 }
 
-#[tokio::test]
+#[api_test]
 async fn should_return_401_if_same_code_twice() {
-    let app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -296,9 +292,8 @@ async fn should_return_401_if_same_code_twice() {
 
     assert_eq!(response.status().as_u16(), 401);
 }
-#[tokio::test]
+#[api_test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new().await;
 
     let test_cases = [
         serde_json::json!({

@@ -20,16 +20,12 @@ fn set_token() -> String {
 
 fn set_database_url() -> String {
     dotenv().ok();
-    let database_url =
-        std_env::var("DATABASE_URL").expect("DATABASE_URL environment variable must be set");
-    if database_url.is_empty() {
-        panic!("DATABASE_URL must be set");
-    }
-    database_url
+    std_env::var(env::DATABASE_URL_ENV_VAR).expect("DATABASE_URL environment variable must be set")
 }
 
 pub mod env {
     pub const JWT_SECRET_ENV_VAR: &str = "JWT_SECRET";
+    pub const DATABASE_URL_ENV_VAR: &str = "DATABASE_URL";
 }
 pub const JWT_COOKIE_NAME: &str = "jwt";
 
