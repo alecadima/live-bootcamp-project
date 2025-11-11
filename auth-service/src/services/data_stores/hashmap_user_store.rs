@@ -48,7 +48,7 @@ mod tests {
     use crate::domain::data_stores::UserStore;
     use crate::domain::user::User;
     use crate::domain::{Email, Password};
-    use crate::services::hashmap_user_store::{HashmapUserStore, UserStoreError};
+    use crate::services::data_stores::hashmap_user_store::{HashmapUserStore, UserStoreError};
 
     #[tokio::test]
     async fn test_add_user() {
