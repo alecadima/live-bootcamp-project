@@ -9,10 +9,12 @@ use axum::{
     Json, Router,
 };
 use domain::AuthAPIError;
+use redis::{Client, RedisResult};
 use routes::{login, logout, signup, verify_2fa, verify_token};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use tower_http::services::ServeFile;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
 pub mod app_state;
@@ -31,6 +33,7 @@ pub struct Application {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
+        let asset_dir = ServeDir::new("assets").not_found_service(ServeFile::new("assets/index.html"));
         // Allow the app service (running on our local machine and in production) to call the auth service
         let allowed_origins = [
             "http://localhost:8000".parse()?,
@@ -46,6 +49,7 @@ impl Application {
 
         let router = Router::new()
             .nest_service("/", ServeDir::new("assets"))
+            .fallback_service(asset_dir)
             .route("/signup", post(signup))
             .route("/login", post(login))
             .route("/verify-2fa", post(verify_2fa))
@@ -97,4 +101,9 @@ impl IntoResponse for AuthAPIError {
 pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
     // Create a new PostgreSQL connection pool
     PgPoolOptions::new().max_connections(5).connect(url).await
+}
+
+pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {
+    let redis_url = format!("redis://{}/", redis_hostname);
+    redis::Client::open(redis_url)
 }
