@@ -14,6 +14,7 @@ use routes::{login, logout, signup, verify_2fa, verify_token};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use tokio::net::TcpListener;
 use tower_http::services::ServeFile;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
@@ -25,7 +26,7 @@ pub mod utils;
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
-    server: Serve<Router, Router>,
+    server: Serve<TcpListener, Router, Router>,
     // address is exposed as a public field.
     // so we have access to it in tests.
     pub address: String,
@@ -33,7 +34,8 @@ pub struct Application {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
-        let asset_dir = ServeDir::new("assets").not_found_service(ServeFile::new("assets/index.html"));
+        let asset_dir =
+            ServeDir::new("assets").not_found_service(ServeFile::new("assets/index.html"));
         // Allow the app service (running on our local machine and in production) to call the auth service
         let allowed_origins = [
             "http://localhost:8000".parse()?,
@@ -48,7 +50,6 @@ impl Application {
             .allow_origin(allowed_origins);
 
         let router = Router::new()
-            .nest_service("/", ServeDir::new("assets"))
             .fallback_service(asset_dir)
             .route("/signup", post(signup))
             .route("/login", post(login))
@@ -58,7 +59,7 @@ impl Application {
             .with_state(app_state)
             .layer(cors);
 
-        let listener = tokio::net::TcpListener::bind(address).await?;
+        let listener = TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
         let server = axum::serve(listener, router);
 
@@ -99,11 +100,11 @@ impl IntoResponse for AuthAPIError {
 }
 
 pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
-    // Create a new PostgreSQL connection pool
+    // Create a new PostgresSQL connection pool
     PgPoolOptions::new().max_connections(5).connect(url).await
 }
 
 pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {
     let redis_url = format!("redis://{}/", redis_hostname);
-    redis::Client::open(redis_url)
+    Client::open(redis_url)
 }

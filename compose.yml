@@ -1,18 +1,18 @@
 version: "3.9"
 services:
   app-service:
-    image: alecadima/app-service # specify name of image on Docker Hub
-    restart: "always" # automatically restart container when server crashes
-    environment: # set up environment variables
-      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
+    image: alecadima/app-service
+    restart: "always"
+    environment:
+      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP}
     ports:
-      - "8000:8000" # expose port 8000 so that applications outside the container can connect to it 
+      - "8000:8000" # expose port 8000 so that applications outside the container can connect to it
     depends_on: # only run app-service after auth-service has started
       auth-service:
         condition: service_started
   auth-service:
     image: alecadima/auth-service
-    restart: "always" # automatically restart container when server crashes
+    restart: "always"
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
@@ -20,7 +20,6 @@ services:
       - "3000:3000" # expose port 3000 so that applications outside the container can connect to it
     depends_on:
       - db
-  # New!
   db:
     image: postgres:15.2-alpine
     restart: always
@@ -35,7 +34,7 @@ services:
     restart: always
     ports:
       - "6379:6379"
-# New!
+
 volumes:
   db:
     driver: local
