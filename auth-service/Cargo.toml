@@ -9,7 +9,7 @@ edition = "2021"
 axum = "0.8.6"
 axum-extra = { version = "0.12.1", features = ["cookie"] }
 tokio = { version = "1.48.0", features = ["full"] }
-tower-http = { version = "0.6.6", features = ["fs", "cors"] }
+tower-http = { version = "0.6.6", features = ["fs", "cors", "trace"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
@@ -24,6 +24,8 @@ sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "migra
 argon2 = { version = "0.5.3", features = ["std"] }
 test_helpers = { git = "https://github.com/letsgetrusty/test-helpers.git" }
 redis = { version = "0.25.2", features = ["tokio-comp"] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
 
 [dev-dependencies]
 reqwest = { version = "0.12.24", default-features = false, features = ["json", "cookies"] }

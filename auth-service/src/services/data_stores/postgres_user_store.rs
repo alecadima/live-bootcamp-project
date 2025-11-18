@@ -21,9 +21,9 @@ impl PostgresUserStore {
         Self { pool }
     }
 }
-
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
+    #[tracing::instrument(name = "Adding user to PostgresSQL", skip_all)]
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         let password_hash = compute_password_hash(user.password.as_ref().to_owned())
             .await
@@ -45,6 +45,7 @@ impl UserStore for PostgresUserStore {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Retrieving user from PostgresSQL", skip_all)]
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         sqlx::query!(
             r#"
@@ -68,6 +69,7 @@ impl UserStore for PostgresUserStore {
             .ok_or(UserStoreError::UserNotFound)?
     }
 
+    #[tracing::instrument(name = "Validating user credentials in PostgresSQL", skip_all)]
     async fn validate_user(
         &self,
         email: &Email,
@@ -89,6 +91,7 @@ impl UserStore for PostgresUserStore {
 // other async tasks, update this function to perform hashing on a
 // separate thread pool using tokio::task::spawn_blocking. Note that you
 // will need to update the input parameters to be String types instead of &str
+#[tracing::instrument(name = "Verify password hash", skip_all)]
 async fn verify_password_hash(
     expected_password_hash: String,
     password_candidate: String,
@@ -109,6 +112,7 @@ async fn verify_password_hash(
 // other async tasks, update this function to perform hashing on a
 // separate thread pool using tokio::task::spawn_blocking. Note that you
 // will need to update the input parameters to be String types instead of &str
+#[tracing::instrument(name = "Computing password hash", skip_all)]
 async fn compute_password_hash(password: String) -> Result<String, Box<dyn Error + Send + Sync>> {
     let result = spawn_blocking(move || {
         let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
