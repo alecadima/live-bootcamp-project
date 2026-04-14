@@ -22,14 +22,6 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
 
     assert_eq!(response.status().as_u16(), 201);
 
-
-    Mock::given(path("/email"))
-        .and(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&app.email_server)
-        .await;
-
     let login_body = serde_json::json!({
         "email": random_email,
         "password": "password123",
@@ -61,6 +53,13 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     let response = app.post_signup(&signup_body).await;
 
     assert_eq!(response.status().as_u16(), 201);
+
+    Mock::given(path("/emails"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
 
     let login_body = serde_json::json!({
         "email": random_email,
