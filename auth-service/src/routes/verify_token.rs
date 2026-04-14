@@ -5,6 +5,7 @@ use auth::validate_token;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
+use secrecy::SecretString;
 use serde::Deserialize;
 
 pub async fn verify_token(
@@ -18,5 +19,5 @@ pub async fn verify_token(
 }
 #[derive(Deserialize, Debug)]
 pub struct VerifyTokenRequest {
-    pub token: String,
+    pub token: SecretString,
 }

@@ -1,6 +1,3 @@
-use std::error::Error;
-
-use crate::utils::tracing::{make_span_with_request_id, on_request, on_response};
 use app_state::AppState;
 use axum::{
     http::{Method, StatusCode},
@@ -12,13 +9,18 @@ use axum::{
 use domain::AuthAPIError;
 use redis::{Client, RedisResult};
 use routes::{login, logout, signup, verify_2fa, verify_token};
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use std::error::Error;
 use tokio::net::TcpListener;
-use tower_http::services::ServeFile;
-use tower_http::trace::TraceLayer;
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::{
+    cors::CorsLayer,
+    services::{ServeDir, ServeFile},
+    trace::TraceLayer,
+};
+use utils::tracing::{make_span_with_request_id, on_request, on_response};
 
 pub mod app_state;
 pub mod domain;
@@ -91,10 +93,11 @@ pub struct ErrorResponse {
 
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
+        log_error_chain(&self);
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
-            AuthAPIError::UnexpectedError => {
+            AuthAPIError::UnexpectedError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
             AuthAPIError::IncorrectCredentials => {
@@ -110,12 +113,28 @@ impl IntoResponse for AuthAPIError {
     }
 }
 
-pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
-    // Create a new PostgresSQL connection pool
-    PgPoolOptions::new().max_connections(5).connect(url).await
+pub async fn get_postgres_pool(url: &SecretString) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect(url.expose_secret())
+        .await
 }
 
 pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {
     let redis_url = format!("redis://{}/", redis_hostname);
     Client::open(redis_url)
+}
+
+fn log_error_chain(e: &(dyn Error + 'static)) {
+    let separator =
+        "\n-----------------------------------------------------------------------------------\n";
+    let mut report = format!("{}{:?}\n", separator, e);
+    let mut current = e.source();
+    while let Some(cause) = current {
+        let str = format!("Caused by:\n\n{:?}", cause);
+        report = format!("{}\n{}", report, str);
+        current = cause.source();
+    }
+    report = format!("{}\n{}", report, separator);
+    tracing::error!("{}", report);
 }

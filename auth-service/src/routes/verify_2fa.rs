@@ -5,8 +5,10 @@ use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum_extra::extract::CookieJar;
+use secrecy::SecretString;
 use serde::Deserialize;
 
+#[tracing::instrument(name = "Verify 2FA", skip_all)]
 pub async fn verify_2fa(
     State(state): State<AppState>, // New!
     jar: CookieJar,
@@ -38,18 +40,18 @@ pub async fn verify_2fa(
     };
     // Validate that the `login_attempt_id` and `two_fa_code`
     // in the request body matches values in the `code_tuple`.
-    // If not, return a `AuthAPIError::IncorrectCredentials`.
+    // If not, return an `AuthAPIError::IncorrectCredentials`.
     if !code_tuple.0.eq(&login_attempt_id) || !code_tuple.1.eq(&two_fa_code) {
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
 
-    if two_fa_code_store.remove_code(&email).await.is_err() {
-        return (jar, Err(AuthAPIError::IncorrectCredentials));
+    if let Err(e) = two_fa_code_store.remove_code(&email).await {
+        return (jar, Err(AuthAPIError::UnexpectedError(e.into())));
     }
 
     let auth_cookie = match generate_auth_cookie(&email) {
         Ok(cookie) => cookie,
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(e) => return (jar, Err(AuthAPIError::UnexpectedError(e))),
     };
 
     let updated_jar = jar.add(auth_cookie);
@@ -59,9 +61,9 @@ pub async fn verify_2fa(
 
 #[derive(Deserialize, Debug)]
 pub struct Verify2FARequest {
-    pub email: String,
+    pub email: SecretString,
     #[serde(rename = "loginAttemptId")]
-    pub login_attempt_id: String,
+    pub login_attempt_id: SecretString,
     #[serde(rename = "2FACode")]
-    pub two_fa_code: String,
+    pub two_fa_code: SecretString,
 }

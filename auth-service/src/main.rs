@@ -1,17 +1,28 @@
-use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
-use auth_service::services::data_stores::redis_banned_token_store::RedisBannedTokenStore;
-use auth_service::services::data_stores::redis_two_fa_code_store::RedisTwoFACodeStore;
-use auth_service::services::mock_email_client::MockEmailClient;
-use auth_service::utils::constants::{prod, DATABASE_URL, REDIS_HOST_NAME};
-use auth_service::utils::tracing::init_tracing;
-use auth_service::{app_state::AppState, get_postgres_pool, get_redis_client, Application};
+use reqwest::Client;
+use secrecy::SecretString;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use auth_service::{
+    app_state::AppState,
+    domain::Email,
+    get_postgres_pool, get_redis_client,
+    services::{
+        data_stores::{PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore},
+        resend_email_client::ResendEmailClient,
+    },
+    utils::{
+        constants::{prod, DATABASE_URL, REDIS_HOST_NAME, RESEND_API_KEY},
+        tracing::init_tracing,
+    },
+    Application,
+};
+
 #[tokio::main]
 async fn main() {
-    init_tracing();
+    color_eyre::install().expect("Failed to install color_eyre");
+    init_tracing().expect("Failed to initialize tracing");
     let pg_pool = configure_postgresql().await;
     let redis_conn = Arc::new(RwLock::new(configure_redis()));
     //let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
@@ -20,7 +31,7 @@ async fn main() {
     let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_conn.clone())));
     //let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
     let two_fa_code_store = Arc::new(RwLock::new(RedisTwoFACodeStore::new(redis_conn)));
-    let email_client = Arc::new(MockEmailClient);
+    let email_client = Arc::new(configure_resend_email_client());
 
     let app_state = AppState::new(
         user_store,
@@ -56,4 +67,23 @@ fn configure_redis() -> redis::Connection {
         .expect("Failed to get Redis client")
         .get_connection()
         .expect("Failed to get Redis connection")
+}
+
+fn configure_resend_email_client() -> ResendEmailClient {
+    let http_client = Client::builder()
+        .timeout(prod::email_client::TIMEOUT)
+        .build()
+        .expect("Failed to build HTTP client");
+
+    ResendEmailClient::new(
+        prod::email_client::BASE_URL_RESEND.to_owned(),
+        Email::parse(SecretString::new(
+            prod::email_client::SENDER_RESEND
+                .to_owned()
+                .into_boxed_str(),
+        ))
+            .unwrap(),
+        RESEND_API_KEY.to_owned(),
+        http_client,
+    )
 }
